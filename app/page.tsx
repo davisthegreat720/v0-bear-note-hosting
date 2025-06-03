@@ -303,6 +303,8 @@ Happy note-taking! 📝
 
   // Render markdown-like content
   const renderContent = (content: string) => {
+    if (!content) return <p>No content</p>
+
     return content.split("\n").map((line, index) => {
       // Headers
       if (line.startsWith("# ")) {
@@ -358,6 +360,13 @@ Happy note-taking! 📝
       return <p key={index} className="mb-2 leading-relaxed" dangerouslySetInnerHTML={{ __html: formattedLine }} />
     })
   }
+
+  // Debug selected note changes
+  useEffect(() => {
+    if (selectedNote) {
+      console.log("Selected note changed:", selectedNote.title)
+    }
+  }, [selectedNote])
 
   return (
     <div className="flex h-screen bg-white">
@@ -472,6 +481,7 @@ Happy note-taking! 📝
                 <div
                   key={note.id}
                   onClick={() => {
+                    console.log("Note selected:", note.title)
                     setSelectedNote(note)
                     setIsEditing(false)
                   }}
