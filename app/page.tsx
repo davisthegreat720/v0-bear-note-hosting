@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface Note {
   id: string
@@ -29,6 +30,10 @@ export default function BearNotesApp() {
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState("")
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
+  const [importFiles, setImportFiles] = useState<FileList | null>(null)
+  const [isImporting, setIsImporting] = useState(false)
 
   // Load notes from localStorage
   useEffect(() => {
@@ -161,6 +166,82 @@ Happy note-taking! 📝
   // Toggle archive
   const toggleArchive = (noteId: string) => {
     updateNote(noteId, { isArchived: !notes.find((n) => n.id === noteId)?.isArchived })
+  }
+
+  // Import Bear notes
+  const importBearNotes = async () => {
+    if (!importFiles) return
+
+    setIsImporting(true)
+    const newNotes: Note[] = []
+
+    for (let i = 0; i < importFiles.length; i++) {
+      const file = importFiles[i]
+      try {
+        const content = await file.text()
+        const note = parseBearNote(file.name, content)
+        if (note) {
+          newNotes.push(note)
+        }
+      } catch (error) {
+        console.error(`Error importing ${file.name}:`, error)
+      }
+    }
+
+    if (newNotes.length > 0) {
+      setNotes([...newNotes, ...notes])
+      setIsImportDialogOpen(false)
+      setImportFiles(null)
+    }
+
+    setIsImporting(false)
+  }
+
+  const parseBearNote = (filename: string, content: string): Note | null => {
+    try {
+      // Extract title from filename or first line
+      let title = filename.replace(/\.(md|txt|bear)$/i, "")
+
+      // If content starts with a header, use that as title
+      const firstLine = content.split("\n")[0]
+      if (firstLine.startsWith("# ")) {
+        title = firstLine.slice(2).trim()
+      }
+
+      // Extract tags from content
+      const tags = extractTags(content)
+
+      // Try to extract creation date from Bear's format
+      let createdAt = new Date()
+      const dateMatch = content.match(/Created: (.+)/i)
+      if (dateMatch) {
+        const parsedDate = new Date(dateMatch[1])
+        if (!isNaN(parsedDate.getTime())) {
+          createdAt = parsedDate
+        }
+      }
+
+      // Clean up Bear-specific formatting
+      const cleanContent = content
+        .replace(/^Created: .+$/gm, "") // Remove Bear's created date
+        .replace(/^Modified: .+$/gm, "") // Remove Bear's modified date
+        .replace(/^\s*\n/gm, "\n") // Clean up extra newlines
+        .trim()
+
+      return {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        title: title || "Imported Note",
+        content: cleanContent,
+        tags,
+        createdAt,
+        updatedAt: new Date(),
+        isStarred: false,
+        isArchived: false,
+      }
+    } catch (error) {
+      console.error("Error parsing note:", error)
+      return null
+    }
   }
 
   // Filter notes
@@ -306,6 +387,10 @@ Happy note-taking! 📝
           <Button onClick={createNote} className="w-full">
             <Plus className="h-4 w-4 mr-2" />
             New Note
+          </Button>
+          <Button onClick={() => setIsImportDialogOpen(true)} variant="outline" className="w-full mt-2">
+            <Plus className="h-4 w-4 mr-2" />
+            Import Notes
           </Button>
         </div>
 
@@ -518,6 +603,75 @@ Happy note-taking! 📝
           )}
         </div>
       </div>
+      {/* Import Dialog */}
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Import Bear Notes</DialogTitle>
+            <DialogDescription>
+              Import your notes from Bear or other markdown files. Supports .md, .txt, and .bear files.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+              <input
+                type="file"
+                multiple
+                accept=".md,.txt,.bear"
+                onChange={(e) => setImportFiles(e.target.files)}
+                className="hidden"
+                id="file-upload"
+              />
+              <label htmlFor="file-upload" className="cursor-pointer">
+                <div className="space-y-2">
+                  <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                    <Plus className="h-6 w-6 text-gray-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Click to select files</p>
+                    <p className="text-xs text-gray-500">or drag and drop your Bear export files here</p>
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            {importFiles && importFiles.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Selected files ({importFiles.length}):</p>
+                <div className="max-h-32 overflow-y-auto space-y-1">
+                  {Array.from(importFiles).map((file, index) => (
+                    <div key={index} className="text-xs bg-gray-50 p-2 rounded flex justify-between items-center">
+                      <span>{file.name}</span>
+                      <span className="text-gray-500">{(file.size / 1024).toFixed(1)} KB</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h4 className="text-sm font-medium mb-2">How to export from Bear:</h4>
+              <ol className="text-xs text-gray-600 space-y-1">
+                <li>1. Open Bear app on your Mac/iOS device</li>
+                <li>2. Select the notes you want to export (or select all)</li>
+                <li>3. Go to File → Export Notes (or use ⌘E)</li>
+                <li>4. Choose "Markdown" or "Text" format</li>
+                <li>5. Save the files and upload them here</li>
+              </ol>
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setIsImportDialogOpen(false)} disabled={isImporting}>
+                Cancel
+              </Button>
+              <Button onClick={importBearNotes} disabled={!importFiles || importFiles.length === 0 || isImporting}>
+                {isImporting ? "Importing..." : `Import ${importFiles?.length || 0} Notes`}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
