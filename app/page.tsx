@@ -388,6 +388,7 @@ Happy note-taking! 📝
             <Plus className="h-4 w-4 mr-2" />
             New Note
           </Button>
+
           <Button onClick={() => setIsImportDialogOpen(true)} variant="outline" className="w-full mt-2">
             <Plus className="h-4 w-4 mr-2" />
             Import Notes
@@ -603,6 +604,7 @@ Happy note-taking! 📝
           )}
         </div>
       </div>
+
       {/* Import Dialog */}
       <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
         <DialogContent className="max-w-2xl">
