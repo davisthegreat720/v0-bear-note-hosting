@@ -377,7 +377,7 @@ Happy note-taking! 📝
         {/* Sidebar Header */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold text-gray-800">Bear Notes</h1>
+            <h1 className="text-xl font-bold text-gray-800">davisthetech Notes</h1>
             <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(false)} className="md:hidden">
               <X className="h-4 w-4" />
             </Button>

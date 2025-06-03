@@ -3,8 +3,8 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Bear Notes",
-  description: "A Bear-inspired note-taking app",
+  title: "davisthetech Notes",
+  description: "A Bear-inspired note-taking app by davisthetech",
   generator: "v0.dev",
 }
 
